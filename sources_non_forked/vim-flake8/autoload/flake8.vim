@@ -24,6 +24,14 @@ function! flake8#Flake8ShowError()
     call s:ShowErrorMessage()
 endfunction
 
+function! flake8#Flake8NextError()
+    call s:JumpNextError()
+endfunction
+
+function! flake8#Flake8PrevError()
+    call s:JumpPrevError()
+endfunction
+
 "" }}}
 
 "" ** internal ** {{{
@@ -146,7 +154,7 @@ function! s:Flake8()  " {{{
     set t_te=
 
     " perform the grep itself
-    let &grepformat="%f:%l:%c: %m\,%f:%l: %m"
+    let &grepformat="%f:%l:%c: %m\,%f:%l: %m,%-G%\\d"
     let &grepprg=s:flake8_cmd
     silent! grep! "%"
     " close any existing cwindows,
@@ -197,7 +205,6 @@ function! s:Flake8()  " {{{
         echon "Flake8 found issues"
     endif
 endfunction  " }}}
-
 
 
 "" markers
@@ -292,6 +299,57 @@ function! s:ShowErrorMessage()  " {{{
 	echo
 	let b:showing_message = 0
     endif
+endfunction  " }}}
+
+function! s:JumpNextError()  " {{{
+    let l:cursorLine = getpos(".")[1]
+    if !exists('s:resultDict')
+	return
+    endif
+
+    " Convert list of strings to ints
+    let l:lineList = []
+    for line in keys(s:resultDict)
+	call insert(l:lineList, line+0)
+    endfor
+
+    let l:sortedLineList = sort(l:lineList, 'n')
+    for line in l:sortedLineList
+	let l:line_int = line + 0
+        if line	> l:cursorLine
+	    call cursor(line, 1)
+	    call s:ShowErrorMessage()
+	    return
+	endif
+    endfor
+    call cursor(l:cursorLine, 1)
+    echo "Reached last error!"
+
+endfunction  " }}}
+
+function! s:JumpPrevError()  " {{{
+    let l:cursorLine = getpos(".")[1]
+    if !exists('s:resultDict')
+	return
+    endif
+
+    " Convert list of strings to ints
+    let l:lineList = []
+    for line in keys(s:resultDict)
+	call insert(l:lineList, line+0)
+    endfor
+
+    let l:sortedLineList = reverse(sort(l:lineList, 'n'))
+    for line in l:sortedLineList
+	let l:line_int = line + 0
+        if line	< l:cursorLine
+	    call cursor(line, 1)
+	    call s:ShowErrorMessage()
+	    return
+	endif
+    endfor
+    call cursor(l:cursorLine, 1)
+    echo "Reached first error!"
 
 endfunction  " }}}
 
